@@ -148,6 +148,7 @@ char* fetchhostname()
   {
     fgets(buffer, 64, fptr);
     fclose(fptr);
+    buffer[strcspn(buffer, "\n")] = '\0';
     return buffer;
   }
 }
