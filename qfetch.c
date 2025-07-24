@@ -473,6 +473,6 @@ int main(int argc, char **argv)
   printf(BLUE "%s" RESET BLUE "memory" RESET "   %.0lfM / %.0lfM (%0.1lf%%)\n", logo[5], usedmem/1024, totalmem/1024, mempercent);
   printf(BLUE "%s" RESET BLUE "pkgs" RESET "     %d\n", logo[6], getPackages());
 
-  free((void*)distro_id);
+  if (!custom) free((void*)distro_id);
   return 0;
 }
