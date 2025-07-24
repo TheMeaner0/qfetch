@@ -14,6 +14,7 @@
 
 ## ASCII Art
 There isn't a lot of ASCII art just yet, almost all of the art is copied from [pfetch](https://github.com/dylanaraps/pfetch)
+Currently Supported:
 - Arch
 - Arco
 - Artix
