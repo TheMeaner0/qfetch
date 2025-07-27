@@ -38,6 +38,16 @@ const char *artix[] = {
   "/.,'`     `'`\\  "
 };
 
+const char *cachyos[] = {
+  "   /''''''''''''/    ",
+  "  /''''''''''''/     ",
+  " /''''''/            ",
+  "/''''''/             ",
+  "\\......\\             ",
+  " \\.............../   ",
+  "  \\............./    "
+};
+
 const char *debian[] = {
   "  _____         ",
   " /  __ \\        ",
@@ -107,13 +117,14 @@ typedef struct
 
 const Distro distro_logos[] = 
 {
-  { "arch", arch },
-  { "arco", arco },
-  { "artix", artix },
-  { "debian", debian },
-  { "devuan", devuan },
-  { "gentoo", gentoo },
-  { "manjaro", manjaro },
+  { "arch",      arch },
+  { "arco",      arco },
+  { "artix",     artix },
+  { "cachyos",   cachyos},
+  { "debian",    debian },
+  { "devuan",    devuan },
+  { "gentoo",    gentoo },
+  { "manjaro",   manjaro },
   { "linuxmint", mint },
 };
 
@@ -139,17 +150,30 @@ char* fetchhostname()
   {
     FILE *hnptr = popen("uname -n", "r");
     if (hnptr == NULL) return NULL;
-    fgets(buffer, 64, hnptr);
-    pclose(hnptr);
-    buffer[strcspn(buffer, "\n")] = '\0';
-    return buffer;
+    if (fgets(buffer, 64, hnptr))
+    {
+      pclose(hnptr);
+      buffer[strcspn(buffer, "\n")] = '\0';
+      return buffer;
+    }
+    else 
+    {
+      perror("Error: Couldn't read hostname through 'uname -n'");
+      return 0;
+    }
   }
   else 
   {
-    fgets(buffer, 64, fptr);
-    fclose(fptr);
-    buffer[strcspn(buffer, "\n")] = '\0';
-    return buffer;
+    if (fgets(buffer, 64, fptr))
+    {
+      fclose(fptr);
+      return buffer;
+    }
+    else 
+    {
+      perror("Error: Couldn't read hostname through '/etc/hostname'");
+      return 0;
+    }
   }
 }
 
@@ -177,24 +201,39 @@ char* fetchos(int Togglefetchid)
 
   if (Togglefetchid)
   {
-    fgets(buffer, 64, fptr); 
-    while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "ID=", 3) == 0) break;
-    char* id_value = buffer + 3;
-    id_value[strcspn(id_value, "\n")] = '\0';    
-    fclose(fptr);
-    return strdup(id_value);
+    if (fgets(buffer, 64, fptr))
+    {
+      while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "ID=", 3) == 0) break;
+      char* id_value = buffer + 3;
+      id_value[strcspn(id_value, "\n")] = '\0';    
+      fclose(fptr);
+      return strdup(id_value);
+    }
+    else
+    {
+      perror("Error: Couldn't read OS ID through '/etc/os-release'");
+      return 0;
+    }
   }
   else 
   {
-    fgets(buffer, 64, fptr);
-    while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "PRETTY", 3) == 0) break;
-    buffer[strcspn(buffer, "\n")] = '\0';
-    char* changed_buffer = strdup(buffer + 13);
-    free(buffer);
-    changed_buffer[strcspn(changed_buffer, "\"")] = ' ';
-    fclose(fptr);
-    return changed_buffer; 
+    if (fgets(buffer, 64, fptr))
+    {
+      while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "PRETTY", 3) == 0) break;
+      buffer[strcspn(buffer, "\n")] = '\0';
+      char* changed_buffer = strdup(buffer + 13);
+      free(buffer);
+      changed_buffer[strcspn(changed_buffer, "\"")] = ' ';
+      fclose(fptr);
+      return changed_buffer; 
+    }
+    else
+    {
+      perror("Error: Couldn't read OS name through '/etc/os-release'");
+      return 0;
+    }
   }
+  return 0;
 }
 
 char* fetchhost()
@@ -213,11 +252,18 @@ char* fetchhost()
     return 0;
   }
 
-  fgets(buffer, 64, fptr);
-  fclose(fptr);
-  int i = strlen(buffer);
-  buffer[strcspn(buffer, "\n")] = '\0';
-  return buffer;
+  if (fgets(buffer, 64, fptr))
+  {
+    fclose(fptr);
+    buffer[strcspn(buffer, "\n")] = '\0';
+    return buffer;
+  }
+  else
+  {
+    perror("Error: Couldn't read host through '/sys/devices/virtual/dmi/id/board_name'");
+    return 0;
+  }
+  return 0;
 }
 
 char* fetchkernel()
@@ -259,11 +305,18 @@ int fetchtotalmemory()
   }
 
   int totalmemory;
-  fgets(buffer, 64, fptr);
-  sscanf(buffer, "MemTotal: %d kB", &totalmemory);
-  fclose(fptr);
-  return totalmemory;
-
+  if (fgets(buffer, 64, fptr))
+  {
+    sscanf(buffer, "MemTotal: %d kB", &totalmemory);
+    fclose(fptr);
+    return totalmemory;
+  }
+  else
+  {
+    perror("Error: Couldn't read total memory through '/proc/meminfo'");
+    return 0;
+  }
+  return 0;
 }
 
 int fetchusedmemory()
@@ -301,7 +354,7 @@ int getPackages()
   char manager[50];
   int found = 0;
 
-  for (int i = 0; i < sizeof(paths)/sizeof(paths[0]); i++)
+  for (size_t i = 0; i < sizeof(paths)/sizeof(paths[0]); i++)
   {
     if (access(paths[i], X_OK) == 0)
     {
