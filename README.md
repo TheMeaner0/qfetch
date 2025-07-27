@@ -19,6 +19,7 @@ Currently Supported:
 - Arch
 - Arco
 - Artix
+- Cachyos
 - Debian
 - Devuan
 - Gentoo
