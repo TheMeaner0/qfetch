@@ -145,35 +145,18 @@ char* fetchhostname()
     return 0;
   }
 
-  FILE *fptr = fopen("/etc/hostname", "r");
-  if (!fptr)
+  FILE *hnptr = popen("uname -n", "r");
+  if (hnptr == NULL) return NULL;
+  if (fgets(buffer, 64, hnptr))
   {
-    FILE *hnptr = popen("uname -n", "r");
-    if (hnptr == NULL) return NULL;
-    if (fgets(buffer, 64, hnptr))
-    {
-      pclose(hnptr);
-      buffer[strcspn(buffer, "\n")] = '\0';
-      return buffer;
-    }
-    else 
-    {
-      perror("Error: Couldn't read hostname through 'uname -n'");
-      return 0;
-    }
+    pclose(hnptr);
+    buffer[strcspn(buffer, "\n")] = '\0';
+    return buffer;
   }
   else 
   {
-    if (fgets(buffer, 64, fptr))
-    {
-      fclose(fptr);
-      return buffer;
-    }
-    else 
-    {
-      perror("Error: Couldn't read hostname through '/etc/hostname'");
-      return 0;
-    }
+    perror("Error: Couldn't read hostname through 'uname -n'");
+    return 0;
   }
 }
 
