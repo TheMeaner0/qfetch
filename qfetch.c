@@ -136,6 +136,23 @@ const char **get_ascii_logo(const char *distro_id)
   return tux;
 }
 
+typedef struct
+{
+  const char *name;
+  const char *cmd;
+} PackageManager;
+
+const PackageManager managers[] = 
+{
+  { "pacman",     "pacman -Qq | wc -l"},
+  { "dpkg",       "dpkg -l | grep -c '^ii'"},
+  { "emerge",     "ls -d /var/db/pkg/*/* 2>/dev/null | wc -l"},
+  { "dnf",        "dnf list installed | wc -l"},
+  { "zypper",     "zypper se --installed-only | wc -l"},
+  { "xbps-query", "xbps-query -l | wc -l"},
+  { "apk",        "apk info | wc -l"}
+};
+
 char* fetchhostname() 
 {
   char *buffer = malloc(64);
@@ -333,124 +350,39 @@ int fetchusedmemory()
 
 int getPackages()
 {
-  const char *paths[] = { "/usr/bin/pacman", "/usr/bin/dpkg", "/usr/bin/emerge", "/usr/bin/dnf", "/usr/bin/zypper", "/usr/bin/xbps-query" };
-  char manager[50];
-  int found = 0;
-
-  for (size_t i = 0; i < sizeof(paths)/sizeof(paths[0]); i++)
+  char cmd[64];
+  char path[64];
+  size_t i;
+  for (i = 0; i < sizeof(managers)/sizeof(managers[0]); i++)
   {
-    if (access(paths[i], X_OK) == 0)
+    snprintf(cmd, sizeof(cmd), "which %s 2>/dev/null", managers[i].name);
+    FILE *fptr = popen(cmd, "r");
+    if (!fptr)
     {
-      strcpy(manager, paths[i] + 9);
-      found = 1;
+      perror("popen failed");
+      return -1;
+    }
+    if (fgets(path, 64, fptr))
+    {
+      pclose(fptr);
       break;
     }
+    pclose(fptr);
   }
 
-  if (!found)
+  if (i == sizeof(managers)/sizeof(managers[0])) return -1;
+
+  FILE *fptr = popen(managers[i].cmd, "r");
+  if (!fptr) return -1;
+
+  char buffer[16];
+  if (!fgets(buffer, 16, fptr))
   {
-    perror("Error: Package Manager not found.\n");
-    return 1;
+    pclose(fptr);
+    return -1;
   }
-
-  if (strcmp(manager, "pacman") == 0)
-  {
-    FILE *fp = popen("pacman -Qq | wc -l", "r");
-    if (fp == NULL)
-    {
-      perror("Process to find package manager failed");
-      return 1;
-    }
-
-    char buffer[8];
-    if (fgets(buffer, sizeof(buffer), fp) != NULL) buffer[strcspn(buffer, "\n")] = 0;
-    int pkgs = atoi(buffer);
-    pclose(fp);
-    return pkgs;
-  }
-
-  if (strcmp(manager, "emerge") == 0)
-  {
-    FILE *fp = popen("ls -d /var/db/pkg/*/* | wc -l", "r");
-    if (fp == NULL)
-    {
-      perror("Process to find package manager failed");
-      return 1;
-    }
-
-    char buffer[8];
-    if (fgets(buffer, sizeof(buffer), fp) != NULL) buffer[strcspn(buffer, "\n")] = 0;
-    pclose(fp);
-    int pkgs = atoi(buffer);
-    return pkgs;
-  }
-
-
-  if (strcmp(manager, "dpkg") == 0)
-  {
-    FILE *fp = popen("dpkg -l | grep '^ii' | wc -l", "r");
-    if (fp == NULL)
-    {
-      perror("Process to find package manager failed");
-      return 1;
-    }
-
-    char buffer[8];
-    if (fgets(buffer, sizeof(buffer), fp) != NULL) buffer[strcspn(buffer, "\n")] = 0;
-    int pkgs = atoi(buffer);
-    pclose(fp);
-    return pkgs;
-  }
-
-  if (strcmp(manager, "dnf") == 0)
-  {
-    FILE *fp = popen("dnf list installed | tail -n +2 | wc -l", "r");
-    if (fp == NULL)
-    {
-      perror("Process to find package manager failed");
-      return 1;
-    }
-
-    char buffer[8];
-    if (fgets(buffer, sizeof(buffer), fp) != NULL) buffer[strcspn(buffer, "\n")] = 0;
-    int pkgs = atoi(buffer);
-    pclose(fp);
-    return pkgs;
-  }
-
-  if (strcmp(manager, "zypper") == 0)
-  {
-    FILE *fp = popen("zypper se -i | grep '^i |' | wc -l", "r");
-    if (fp == NULL)
-    {
-      perror("Process to find package manager failed");
-      return 1;
-    }
-
-    char buffer[8];
-    if (fgets(buffer, sizeof(buffer), fp) != NULL) buffer[strcspn(buffer, "\n")] = 0;
-    int pkgs = atoi(buffer);
-    pclose(fp);
-    return pkgs;
-  }
-
-  if (strcmp(manager, "xbps-query") == 0)
-  {
-    FILE *fp = popen("xbps-query -l | wc -l", "r");
-    if (fp == NULL)
-    {
-      perror("Process to find package manager failed");
-      return 1;
-    }
-
-    char buffer[8];
-    if (fgets(buffer, sizeof(buffer), fp) != NULL) buffer[strcspn(buffer, "\n")] = 0;
-    int pkgs = atoi(buffer);
-    pclose(fp);
-    return pkgs;
-  }
-
-  return 0;
+  pclose(fptr);
+  return atoi(buffer);
 }
 
 int main(int argc, char **argv)
