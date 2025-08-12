@@ -23,8 +23,10 @@ Currently Supported:
 - Debian
 - Devuan
 - Gentoo
+- Hyperbola
 - Manjaro
 - Linux Mint
+- Ubuntu
 
 ## Installation
 ```bash
