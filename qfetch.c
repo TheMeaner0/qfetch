@@ -5,7 +5,15 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 
-#define BLUE   "\033[1;34m"
+#define RED    "\033[31m"
+#define GREEN  "\033[32m"
+#define ORANGE "\033[33m"
+#define BLUE   "\033[34m"
+#define INDIGO "\033[35m"
+#define CYAN   "\033[36m"
+#define YELLOW "\033[93m"
+#define VIOLET "\033[95m"
+#define WHITE  "\033[97m"
 #define RESET  "\033[0m"
 
 const char *arch[] = {
@@ -79,6 +87,16 @@ const char *gentoo[] = {
     "\\____.-`        "
 };
 
+const char *hyperbola[] = {
+  "    |`__.`/   ",
+  "    \\____/    ",
+  "    .--.      ",
+  "   /    \\     ",
+  "  /  ___ \\    ",
+  " / .`   `.\\   ",
+  "/.`      `.\\  "
+};
+
 const char *manjaro[] = {
   "||||||||| ||||  ",
   "||||||||| ||||  ",
@@ -109,31 +127,46 @@ const char *tux[] = {
   "\\___)=(___/     "
 };
 
+const char *ubuntu[] = {
+  "         _   ",
+  "     ---(_)  ",
+  " _/  ---  \\  ",
+  "(_) |   |    ",
+  "  \\  --- _/  ",
+  "     ---(_)  "
+};
+
 typedef struct 
 {
   const char *name;
   const char **logo;
+  int rows;
+  const char *color;
 } Distro;
 
 const Distro distro_logos[] = 
 {
-  { "arch",      arch },
-  { "arco",      arco },
-  { "artix",     artix },
-  { "cachyos",   cachyos},
-  { "debian",    debian },
-  { "devuan",    devuan },
-  { "gentoo",    gentoo },
-  { "manjaro",   manjaro },
-  { "linuxmint", mint },
+    { "arch",      arch,      7, CYAN },
+    { "arco",      arco,      7, CYAN },
+    { "artix",     artix,     7, CYAN },
+    { "cachyos",   cachyos,   7, GREEN },
+    { "debian",    debian,    7, RED },
+    { "devuan",    devuan,    7, VIOLET },
+    { "gentoo",    gentoo,    7, VIOLET },
+    { "hyperbola", hyperbola, 7, WHITE },
+    { "manjaro",   manjaro,   7, GREEN },
+    { "linuxmint", mint,      7, GREEN },
+    { "ubuntu",    ubuntu,    6, ORANGE}
 };
 
-#define DISTRO_LOGO_COUNT (sizeof(distro_logos) / sizeof(distro_logos[0]))
 
-const char **get_ascii_logo(const char *distro_id) 
+#define DISTRO_COUNT (sizeof(distro_logos) / sizeof(distro_logos[0]))
+
+const Distro *get_distro(const char *distro_id)
 {
-  for (size_t i = 0; i < DISTRO_LOGO_COUNT; ++i) if (strcasecmp(distro_id, distro_logos[i].name) == 0) return distro_logos[i].logo;
-  return tux;
+  for (size_t i = 0; i < DISTRO_COUNT; i++) if (strcasecmp(distro_id, distro_logos[i].name) == 0) return &distro_logos[i];
+  static Distro default_distro = { "tux", tux, 7, BLUE };
+  return &default_distro;
 }
 
 typedef struct
@@ -145,7 +178,7 @@ typedef struct
 const PackageManager managers[] = 
 {
   { "pacman",     "pacman -Qq | wc -l"},
-  { "dpkg",       "dpkg -l | grep -c '^ii'"},
+  { "dpkg",       "dpkg -l | grep -Ec '^(ii|rc)'"},
   { "emerge",     "ls -d /var/db/pkg/*/* 2>/dev/null | wc -l"},
   { "dnf",        "dnf list installed | wc -l"},
   { "zypper",     "zypper se --installed-only | wc -l"},
@@ -185,6 +218,7 @@ char* fetchusername()
 
 char* fetchos(int Togglefetchid)
 {
+  int found = 0;
   FILE *fptr = fopen("/etc/os-release", "r");
   if (!fptr)
   {
@@ -219,7 +253,8 @@ char* fetchos(int Togglefetchid)
   {
     if (fgets(buffer, 64, fptr))
     {
-      while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "PRETTY", 3) == 0) break;
+      if (strncmp(buffer, "PRETTY_NAME", 3) == 0) found = 1;
+      if (!found) while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "PRETTY_NAME", 3) == 0) break;
       buffer[strcspn(buffer, "\n")] = '\0';
       char* changed_buffer = strdup(buffer + 13);
       free(buffer);
@@ -407,41 +442,48 @@ int main(int argc, char **argv)
 
   if (custom) distro_id = argv[2];
   else distro_id = fetchos(1);
-  const char **logo = get_ascii_logo(distro_id);
+  const Distro *distro = get_distro(distro_id);
 
   char* hostname = fetchhostname();
   char* osname = fetchos(0);
   char* host = fetchhost();
 
-  printf(BLUE "%s%s@%s\n" RESET, logo[0], fetchusername(), hostname); 
-  printf(BLUE "%s" RESET BLUE "os" RESET "       %s\n", logo[1], osname);
-  printf(BLUE "%s" RESET BLUE "host" RESET "     %s\n", logo[2], host);
+  printf("%s%s%s@%s%s\n", distro->color, distro->logo[0], fetchusername(), hostname, RESET);
+  printf("%s%s%sos%s       %s\n", distro->color, distro->logo[1], distro->color, RESET, osname);
+  printf("%s%s%shost%s     %s\n", distro->color, distro->logo[2], distro->color, RESET, host);
 
   free(hostname);
   free(osname);
   free(host);
 
   char *kernel = fetchkernel();
-  printf(BLUE "%s" RESET BLUE "kernel" RESET "   %s\n", logo[3], kernel);
+  printf("%s%s%skernel%s   %s\n", distro->color, distro->logo[3], distro->color, RESET, kernel);
   free(kernel);
 
   int uptime = fetchuptime();
   int days = uptime / (60*60*24);
-  int hours = ((int)uptime / (3600)) % 24;
+  int hours = ((int)uptime / 3600) % 24;
   int minutes = ((int)uptime / 60) % 60;
   int seconds = (int)uptime;
 
-  if (days > 0) printf(BLUE "%s" RESET BLUE "uptime" RESET "   %dd %dh %dm\n", logo[4], days, hours, minutes);
-  if (hours > 0 && days == 0) printf(BLUE "%s" RESET BLUE "uptime" RESET "   %dh %dm\n", logo[4], hours, minutes);
-  if (minutes > 0 && hours == 0) printf(BLUE "%s" RESET BLUE "uptime" RESET "   %dm\n", logo[4], minutes);
-  if (seconds < 60) printf(BLUE "%s" RESET BLUE "uptime" RESET "   %ds\n", logo[4], seconds);
+  if (days > 0)
+      printf("%s%s%suptime%s   %dd %dh %dm\n", distro->color, distro->logo[4], distro->color, RESET, days, hours, minutes);
+  if (hours > 0 && days == 0)
+      printf("%s%s%suptime%s   %dh %dm\n", distro->color, distro->logo[4], distro->color, RESET, hours, minutes);
+  if (minutes > 0 && hours == 0 && days == 0)
+      printf("%s%s%suptime%s   %dm\n", distro->color, distro->logo[4], distro->color, RESET, minutes);
+  if (seconds < 60)
+      printf("%s%s%suptime%s   %ds\n", distro->color, distro->logo[4], distro->color, RESET, seconds);
 
   double usedmem = fetchusedmemory();
   double totalmem = fetchtotalmemory();
   double mempercent = (usedmem / totalmem) * 100;
-  printf(BLUE "%s" RESET BLUE "memory" RESET "   %.0lfM / %.0lfM (%0.1lf%%)\n", logo[5], usedmem/1024, totalmem/1024, mempercent);
-  printf(BLUE "%s" RESET BLUE "pkgs" RESET "     %d\n", logo[6], getPackages());
+  printf("%s%s%smemory%s   %.0lfM / %.0lfM (%0.1lf%%)\n", distro->color, distro->logo[5], distro->color, RESET, usedmem/1024, totalmem/1024, mempercent);
+  if (distro->rows >= 7) printf("%s%s%spkgs%s     %d\n", distro->color, distro->logo[6], distro->color, RESET, getPackages());
+  else printf("%s             pkgs%s     %d\n", distro->color, RESET, getPackages());
+
 
   if (!custom) free((void*)distro_id);
   return 0;
+
 }
