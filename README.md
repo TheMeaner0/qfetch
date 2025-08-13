@@ -16,17 +16,22 @@
 There isn't a lot of ASCII art just yet, almost all of the art is copied from [pfetch](https://github.com/dylanaraps/pfetch)
 
 Currently Supported:
+- Alpine
 - Arch
 - Arco
 - Artix
 - Cachyos
 - Debian
 - Devuan
+- Elementary
+- Fedora
+- Garuda
 - Gentoo
 - Hyperbola
 - Manjaro
 - Linux Mint
 - Ubuntu
+- Void
 
 ## Installation
 ```bash
