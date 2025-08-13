@@ -16,6 +16,15 @@
 #define WHITE  "\033[97m"
 #define RESET  "\033[0m"
 
+const char *alpine[] = {
+  "   /\\ /\\      ",
+  "  // \\  \\     ",
+  " //   \\  \\    ",
+  "///    \\  \\   ",
+  "//      \\  \\  ",
+  "         \\    "
+};
+
 const char *arch[] = {
     "      /\\        ",
     "     /  \\       ",
@@ -75,7 +84,38 @@ const char *devuan[] = {
   ".:=+#@@%*:      ",
   "#@@@#=:         ",
 };
-             
+
+const char *elementary[] = {
+  "  _______     ",
+  " / ____  \\    ",
+  "/  |  /  /\\   ",
+  "|__\\ /  / |   ",
+  "\\   /__/  /   ",
+  " \\_______/     "
+};
+
+const char *fedora[] = {
+  "        ,'''''.  ",
+  "       |   ,.  | ",
+  "       |  |  '_' ",
+  "  ,....|  |..    ",
+  ".'  ,_;|   ..'   ",
+  "|  |   |  |      ",
+  "|  ',_,'  |      ",
+  " '.     ,'       ",
+  "   '''''         "
+};
+
+const char *garuda[] = {
+  "         _______       ",
+  "      __/       \\_     ",
+  "    _/     /      \\_   ",
+  "  _/      /_________\\  ",
+  "_/                  |  ",
+  "\\     ____________     ",
+  " \\_            __/     ",
+  "   \\__________/        "
+};
 
 const char *gentoo[] = {
     "  .-----.       ",
@@ -128,12 +168,22 @@ const char *tux[] = {
 };
 
 const char *ubuntu[] = {
-  "         _   ",
-  "     ---(_)  ",
-  " _/  ---  \\  ",
-  "(_) |   |    ",
-  "  \\  --- _/  ",
-  "     ---(_)  "
+  "         _    ",
+  "     ---(_)   ",
+  " _/  ---  \\   ",
+  "(_) |   |     ",
+  "  \\  --- _/   ",
+  "     ---(_)   "
+};
+
+const char *voidlinux[] = {
+  "    _______    ",
+  " _ \\______ -   ",
+  "| \\  ___  \\ |  ",
+  "| | /   \\ | |  ",
+  "| | \\___/ | |  ",
+  "| \\______ \\_|  ",
+  " -_______\\     "
 };
 
 typedef struct 
@@ -146,24 +196,30 @@ typedef struct
 
 const Distro distro_logos[] = 
 {
-    { "arch",      arch,      7, CYAN },
-    { "arco",      arco,      7, CYAN },
-    { "artix",     artix,     7, CYAN },
-    { "cachyos",   cachyos,   7, GREEN },
-    { "debian",    debian,    7, RED },
-    { "devuan",    devuan,    7, VIOLET },
-    { "gentoo",    gentoo,    7, VIOLET },
-    { "hyperbola", hyperbola, 7, WHITE },
-    { "manjaro",   manjaro,   7, GREEN },
-    { "linuxmint", mint,      7, GREEN },
-    { "ubuntu",    ubuntu,    6, ORANGE}
+    { "alpine",     alpine,     6, CYAN   },
+    { "arch",       arch,       7, CYAN   },
+    { "arco",       arco,       7, CYAN   },
+    { "artix",      artix,      7, CYAN   },
+    { "cachyos",    cachyos,    7, GREEN  },
+    { "debian",     debian,     7, RED    },
+    { "devuan",     devuan,     7, VIOLET },
+    { "elementary", elementary, 6, WHITE },
+    { "fedora",     fedora,     9, BLUE },
+    { "garuda",     garuda,     8, VIOLET },
+    { "gentoo",     gentoo,     7, VIOLET },
+    { "hyperbola",  hyperbola,  7, WHITE  },
+    { "manjaro",    manjaro,    7, GREEN  },
+    { "linuxmint",  mint,       7, GREEN  },
+    { "ubuntu",     ubuntu,     6, ORANGE },
+    { "voidlinux",  voidlinux,  7, GREEN  }
 };
-
 
 #define DISTRO_COUNT (sizeof(distro_logos) / sizeof(distro_logos[0]))
 
 const Distro *get_distro(const char *distro_id)
 {
+  static Distro void_distro = {"voidlinux", voidlinux, 7, GREEN};
+  if (strcasecmp(distro_id, "void") == 0) return &void_distro;
   for (size_t i = 0; i < DISTRO_COUNT; i++) if (strcasecmp(distro_id, distro_logos[i].name) == 0) return &distro_logos[i];
   static Distro default_distro = { "tux", tux, 7, BLUE };
   return &default_distro;
@@ -480,8 +536,10 @@ int main(int argc, char **argv)
   double mempercent = (usedmem / totalmem) * 100;
   printf("%s%s%smemory%s   %.0lfM / %.0lfM (%0.1lf%%)\n", distro->color, distro->logo[5], distro->color, RESET, usedmem/1024, totalmem/1024, mempercent);
   if (distro->rows >= 7) printf("%s%s%spkgs%s     %d\n", distro->color, distro->logo[6], distro->color, RESET, getPackages());
-  else printf("%s             pkgs%s     %d\n", distro->color, RESET, getPackages());
+  else printf("%s              pkgs%s     %d\n", distro->color, RESET, getPackages());
 
+  if (distro->rows >= 8) printf("%s%s%s%s\n", distro->color, distro->logo[7], distro->color, RESET);
+  if (distro->rows == 9) printf("%s%s%s%s\n", distro->color, distro->logo[8], distro->color, RESET);
 
   if (!custom) free((void*)distro_id);
   return 0;
