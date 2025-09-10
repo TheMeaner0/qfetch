@@ -303,6 +303,8 @@ char* fetchos(int Togglefetchid)
         id_value[strlen(id_value) - 1] = '\0';
         id_value++;
       }
+      fclose(fptr);
+      return strdup(id_value);
     }
     else
     {
