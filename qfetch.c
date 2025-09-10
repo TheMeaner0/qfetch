@@ -298,8 +298,11 @@ char* fetchos(int Togglefetchid)
       while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "ID=", 3) == 0) break;
       char* id_value = buffer + 3;
       id_value[strcspn(id_value, "\n")] = '\0';    
-      fclose(fptr);
-      return strdup(id_value);
+      if (id_value[0] == '"' && id_value[strlen(id_value) - 1] == '"')
+      {
+        id_value[strlen(id_value) - 1] = '\0';
+        id_value++;
+      }
     }
     else
     {
