@@ -1,9 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <pwd.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/utsname.h>
+#define _POSIX_C_SOURCE 200809L   
+#include <stdio.h>      
+#include <stdlib.h>     
+#include <string.h>     
+#include <strings.h>    
+#include <unistd.h>     
+#include <pwd.h>        
+#include <sys/utsname.h> 
 
 #define RED    "\033[31m"
 #define GREEN  "\033[32m"
