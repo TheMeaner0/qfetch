@@ -52,5 +52,4 @@ Options:
     --distro NAME : choose custom ASCII logo.
 
 ## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is released under CC0 1.0 Universal (Public Domain Dedication) - see the [LICENSE](LICENSE) file for details.
