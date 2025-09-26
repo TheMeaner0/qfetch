@@ -314,7 +314,7 @@ char* fetchos(int Togglefetchid)
   {
     if (fgets(buffer, BUFFER_SIZE, fptr))
     {
-      if (strncmp(buffer, "PRETTY_NAME", 12) == 0) found = 1;
+      if (strncmp(buffer, "PRETTY_NAME", 11) == 0) found = 1;
       if (!found) while (fgets(buffer, BUFFER_SIZE, fptr)) if (strncmp(buffer, "PRETTY_NAME", 3) == 0) break;
       buffer[strcspn(buffer, "\n")] = '\0';
       char* changed_buffer = strdup(buffer + 13);
