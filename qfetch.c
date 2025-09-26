@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 200809L   
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>      
 #include <stdlib.h>     
 #include <string.h>     
@@ -17,6 +17,8 @@
 #define VIOLET "\033[95m"
 #define WHITE  "\033[97m"
 #define RESET  "\033[0m"
+
+#define BUFFER_SIZE 128
 
 const char *alpine[] = {
   "   /\\ /\\      ",
@@ -236,36 +238,29 @@ typedef struct
 const PackageManager managers[] = 
 {
   { "pacman",     "pacman -Qq | wc -l"},
-  { "dpkg",       "dpkg -l | grep -Ec '^(ii|rc)'"},
+  { "dpkg",       "dpkg -l | grep '^\\(ii\\|rc\\)' | wc -l"},
   { "emerge",     "ls -d /var/db/pkg/*/* 2>/dev/null | wc -l"},
   { "dnf",        "dnf list installed | wc -l"},
   { "zypper",     "zypper se --installed-only | wc -l"},
   { "xbps-query", "xbps-query -l | wc -l"},
-  { "apk",        "apk info | wc -l"}
+  { "apk",        "grep '^$' /lib/apk/db/installed | wc -l"}
 };
 
 char* fetchhostname() 
 {
-  char *buffer = malloc(64);
+  char *buffer = malloc(BUFFER_SIZE);
   if (!buffer)
   {
     perror("Error: Memory couldn't be allocated for hostname fetching.\n");
     return 0;
   }
-
-  FILE *hnptr = popen("uname -n", "r");
-  if (hnptr == NULL) return NULL;
-  if (fgets(buffer, 64, hnptr))
+  if (gethostname(buffer, BUFFER_SIZE) == 0)
   {
-    pclose(hnptr);
-    buffer[strcspn(buffer, "\n")] = '\0';
+    buffer[63] = '\0';
     return buffer;
   }
-  else 
-  {
-    perror("Error: Couldn't read hostname through 'uname -n'");
-    return 0;
-  }
+  free(buffer);
+  return NULL;
 }
 
 char* fetchusername()
@@ -284,18 +279,19 @@ char* fetchos(int Togglefetchid)
     return 0;
   }
 
-  char *buffer = malloc(64);
+  char *buffer = malloc(BUFFER_SIZE);
   if (!buffer)
   {
+    fclose(fptr);
     perror("Error: Memory couldn't be allocated for operating-system fetching.\n");
     return 0;
   }
 
   if (Togglefetchid)
   {
-    if (fgets(buffer, 64, fptr))
+    if (fgets(buffer, BUFFER_SIZE, fptr))
     {
-      while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "ID=", 3) == 0) break;
+      while (fgets(buffer, BUFFER_SIZE, fptr)) if (strncmp(buffer, "ID=", 3) == 0) break;
       char* id_value = buffer + 3;
       id_value[strcspn(id_value, "\n")] = '\0';    
       if (id_value[0] == '"' && id_value[strlen(id_value) - 1] == '"')
@@ -303,8 +299,10 @@ char* fetchos(int Togglefetchid)
         id_value[strlen(id_value) - 1] = '\0';
         id_value++;
       }
+      char *tmp = strdup(id_value);
       fclose(fptr);
-      return strdup(id_value);
+      free(buffer);
+      return tmp;
     }
     else
     {
@@ -314,10 +312,10 @@ char* fetchos(int Togglefetchid)
   }
   else 
   {
-    if (fgets(buffer, 64, fptr))
+    if (fgets(buffer, BUFFER_SIZE, fptr))
     {
-      if (strncmp(buffer, "PRETTY_NAME", 3) == 0) found = 1;
-      if (!found) while (fgets(buffer, 64, fptr)) if (strncmp(buffer, "PRETTY_NAME", 3) == 0) break;
+      if (strncmp(buffer, "PRETTY_NAME", 12) == 0) found = 1;
+      if (!found) while (fgets(buffer, BUFFER_SIZE, fptr)) if (strncmp(buffer, "PRETTY_NAME", 3) == 0) break;
       buffer[strcspn(buffer, "\n")] = '\0';
       char* changed_buffer = strdup(buffer + 13);
       free(buffer);
@@ -343,14 +341,15 @@ char* fetchhost()
     return 0;
   }
 
-  char *buffer = malloc(64);
+  char *buffer = malloc(BUFFER_SIZE);
   if (!buffer)
   {
+    fclose(fptr);
     perror("Error: Memory couldn't be allocated for host fetching.\n");
     return 0;
   }
 
-  if (fgets(buffer, 64, fptr))
+  if (fgets(buffer, BUFFER_SIZE, fptr))
   {
     fclose(fptr);
     buffer[strcspn(buffer, "\n")] = '\0';
@@ -395,23 +394,27 @@ int fetchtotalmemory()
     return 0;
   }
 
-  char *buffer = malloc(64);
+  char *buffer = malloc(BUFFER_SIZE);
   if (!buffer)
   {
+    fclose(fptr);
     perror("Error: Memory couldn't be allocated for meminfo fetching.\n");
     return 0;
   }
 
   int totalmemory;
-  if (fgets(buffer, 64, fptr))
+  if (fgets(buffer, BUFFER_SIZE, fptr))
   {
     sscanf(buffer, "MemTotal: %d kB", &totalmemory);
+    free(buffer);
     fclose(fptr);
     return totalmemory;
   }
   else
   {
     perror("Error: Couldn't read total memory through '/proc/meminfo'");
+    free(buffer);
+    fclose(fptr);
     return 0;
   }
   return 0;
@@ -426,14 +429,15 @@ int fetchusedmemory()
     return 0;
   }
 
-  char *buffer = malloc(128);
+  char *buffer = malloc(BUFFER_SIZE);
   if (!buffer)
   {
+    fclose(fptr);
     perror("Error: Memory couldn't be allocated for meminfo fetching.\n");
     return 0;
   }
 
-  while (fgets(buffer, 128, fptr)) if (strncmp(buffer, "MemAvailable:", 13) == 0) break;
+  while (fgets(buffer, BUFFER_SIZE, fptr)) if (strncmp(buffer, "MemAvailable:", 13) == 0) break;
   int i;
   fclose(fptr);
   char* cut_buffer = buffer + 16;
@@ -442,14 +446,14 @@ int fetchusedmemory()
   int totalmemory = fetchtotalmemory();
   int availablememory = atoi(cut_buffer);
   int usedmemory = totalmemory - availablememory;
+  free(buffer);
   return usedmemory;
-
 }
 
 int getPackages()
 {
-  char cmd[64];
-  char path[64];
+  char cmd[BUFFER_SIZE];
+  char path[BUFFER_SIZE];
   size_t i;
   for (i = 0; i < sizeof(managers)/sizeof(managers[0]); i++)
   {
@@ -460,7 +464,7 @@ int getPackages()
       perror("popen failed");
       return -1;
     }
-    if (fgets(path, 64, fptr))
+    if (fgets(path, BUFFER_SIZE, fptr))
     {
       pclose(fptr);
       break;
